@@ -2,6 +2,7 @@ package com.maksimowiczm.foodyou.ai.infrastructure
 
 import com.maksimowiczm.foodyou.ai.domain.AiPreferences
 import com.maksimowiczm.foodyou.ai.domain.NutritionCalculator
+import com.maksimowiczm.foodyou.ai.imagePreparationDefinition
 import com.maksimowiczm.foodyou.ai.infrastructure.anthropic.AnthropicClient
 import com.maksimowiczm.foodyou.ai.infrastructure.gemini.GeminiClient
 import com.maksimowiczm.foodyou.ai.infrastructure.openai.OpenAiCompatibleClient
@@ -18,6 +19,8 @@ import org.koin.dsl.module
 import org.koin.dsl.onClose
 
 fun Module.aiModule() {
+    imagePreparationDefinition()
+
     userPreferencesRepositoryOf(::DataStoreAiPreferencesRepository)
 
     single(named(NutritionCalculatorImpl::class.qualifiedName!!)) {
