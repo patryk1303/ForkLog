@@ -53,17 +53,31 @@ internal class QuickAddAiController(
 
     val state: StateFlow<QuickAddAiState> = _state.asStateFlow()
 
-    /** Updates the description; a changed description invalidates a pending result. */
+    /**
+     * Identifies the current input generation. It is incremented on every input mutation and on
+     * every accepted [calculate] call; a running calculation captures the value when it starts and
+     * drops its response once the value no longer matches, so a response computed for older input
+     * can never set [QuickAddAiState.result] or overwrite [QuickAddAiState.status].
+     */
+    private var generation = 0
+
+    /**
+     * Updates the description; a changed description invalidates a pending result and any
+     * calculation still in flight.
+     */
     fun setDescription(description: String) {
+        generation++
         _state.update { it.copy(description = description, result = null) }
     }
 
     /**
      * Prepares up to [MAX_AI_PHOTOS] photos in total. The incoming list is truncated to the
-     * remaining capacity and processed sequentially off the main thread. Unreadable images are
-     * skipped and failures never propagate.
+     * remaining capacity and processed sequentially off the main thread; the capacity is checked
+     * again before every append so overlapping calls can never exceed the cap. Unreadable images
+     * are skipped and failures never propagate.
      */
     fun addPhotos(uris: List<String>) {
+        generation++
         val remaining = MAX_AI_PHOTOS - _state.value.photos.size
         if (remaining <= 0) return
 
@@ -75,31 +89,53 @@ internal class QuickAddAiController(
                 val photo =
                     try {
                         val image = imagePreparation.prepare(uri) ?: continue
-                        AiPhoto(image, decodeJpegToImageBitmap(image.jpeg))
+                        // A thumbnail that cannot be decoded keeps the photo without one
+                        // instead of dropping the photo entirely.
+                        AiPhoto(
+                            image,
+                            runCatching { decodeJpegToImageBitmap(image.jpeg) }.getOrNull(),
+                        )
                     } catch (e: CancellationException) {
                         throw e
                     } catch (e: Exception) {
                         continue
                     }
 
-                _state.update { it.copy(photos = it.photos + photo) }
+                _state.update { current ->
+                    if (current.photos.size >= MAX_AI_PHOTOS) {
+                        current
+                    } else {
+                        current.copy(photos = current.photos + photo)
+                    }
+                }
             }
         }
     }
 
     fun removePhoto(photo: AiPhoto) {
+        generation++
         _state.update { it.copy(photos = it.photos - photo) }
     }
 
     fun clearPhotos() {
+        generation++
         _state.update { it.copy(photos = emptyList()) }
     }
 
-    /** Requests a nutrition calculation for the current description and photos. */
+    /**
+     * Requests a nutrition calculation for the current description and photos.
+     *
+     * Only one calculation runs at a time: while one is in flight
+     * ([QuickAddAiState.Status.Loading]) further calls are ignored. A response whose input
+     * generation changed while the request was running is dropped without touching the state.
+     */
     fun calculate() {
-        scope.launch {
-            _state.update { it.copy(status = QuickAddAiState.Status.Loading) }
+        if (_state.value.status is QuickAddAiState.Status.Loading) return
+        generation++
+        _state.update { it.copy(status = QuickAddAiState.Status.Loading) }
 
+        scope.launch {
+            val token = generation
             val snapshot = _state.value
             val request =
                 NutritionAiRequest(
@@ -109,17 +145,27 @@ internal class QuickAddAiController(
 
             try {
                 val result = calculator.calculate(request)
-                _state.update { it.copy(result = result, status = QuickAddAiState.Status.Idle) }
+                _state.update { current ->
+                    if (token == generation) {
+                        current.copy(result = result, status = QuickAddAiState.Status.Idle)
+                    } else {
+                        current.copy(status = QuickAddAiState.Status.Idle)
+                    }
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Throwable) {
-                _state.update {
-                    it.copy(
-                        status =
-                            QuickAddAiState.Status.Error(
-                                e as? AiCalculationException ?: AiCalculationException.Network(e)
-                            )
-                    )
+                _state.update { current ->
+                    if (token == generation) {
+                        current.copy(
+                            status =
+                                QuickAddAiState.Status.Error(
+                                    e as? AiCalculationException ?: AiCalculationException.Network(e)
+                                )
+                        )
+                    } else {
+                        current.copy(status = QuickAddAiState.Status.Idle)
+                    }
                 }
             }
         }
