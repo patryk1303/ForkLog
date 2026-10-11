@@ -4,7 +4,6 @@ import com.maksimowiczm.foodyou.ai.domain.AiCalculationException
 import com.maksimowiczm.foodyou.ai.domain.AiProviderConfig
 import com.maksimowiczm.foodyou.ai.domain.PreparedImage
 import io.ktor.client.statement.HttpResponse
-import io.ktor.http.HttpStatusCode
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.CancellationException
 

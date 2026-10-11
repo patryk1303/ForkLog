@@ -69,12 +69,18 @@ class OpenAiCompatibleClientTest {
 
     @Test
     fun `429 maps to RateLimited`() = runBlocking {
-        assertStatusMapsTo(HttpStatusCode.TooManyRequests, AiCalculationException.RateLimited::class)
+        assertStatusMapsTo(
+            HttpStatusCode.TooManyRequests,
+            AiCalculationException.RateLimited::class,
+        )
     }
 
     @Test
     fun `500 maps to ServerError`() = runBlocking {
-        assertStatusMapsTo(HttpStatusCode.InternalServerError, AiCalculationException.ServerError::class)
+        assertStatusMapsTo(
+            HttpStatusCode.InternalServerError,
+            AiCalculationException.ServerError::class,
+        )
     }
 
     @Test
@@ -97,7 +103,10 @@ class OpenAiCompatibleClientTest {
         assertTrue(exception is AiCalculationException.Network)
     }
 
-    private suspend fun assertStatusMapsTo(status: HttpStatusCode, expected: KClass<out AiCalculationException>) {
+    private suspend fun assertStatusMapsTo(
+        status: HttpStatusCode,
+        expected: KClass<out AiCalculationException>,
+    ) {
         val client = openAiClientOf(MockEngine { respond(content = "error", status = status) })
 
         val exception =

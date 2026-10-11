@@ -56,7 +56,10 @@ class GeminiClientTest {
 
     @Test
     fun `401 maps to Unauthorized`() = runBlocking {
-        val client = geminiClientOf(MockEngine { respond(content = "error", status = HttpStatusCode.Unauthorized) })
+        val client =
+            geminiClientOf(
+                MockEngine { respond(content = "error", status = HttpStatusCode.Unauthorized) }
+            )
 
         val exception =
             try {

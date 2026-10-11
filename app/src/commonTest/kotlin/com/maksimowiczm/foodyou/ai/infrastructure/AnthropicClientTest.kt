@@ -59,7 +59,10 @@ class AnthropicClientTest {
 
     @Test
     fun `429 maps to RateLimited`() = runBlocking {
-        val client = anthropicClientOf(MockEngine { respond(content = "error", status = HttpStatusCode.TooManyRequests) })
+        val client =
+            anthropicClientOf(
+                MockEngine { respond(content = "error", status = HttpStatusCode.TooManyRequests) }
+            )
 
         val exception =
             try {
