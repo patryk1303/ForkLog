@@ -75,6 +75,21 @@ class AnthropicClientTest {
         assertEquals(AiCalculationException.RateLimited, exception)
     }
 
+    @Test
+    fun `malformed body maps to InvalidResponse`() = runBlocking {
+        val client = anthropicClientOf(MockEngine { respond(content = MALFORMED_RESPONSE) })
+
+        val exception =
+            try {
+                client.complete(SYSTEM_PROMPT, "a bowl of oatmeal", emptyList(), CONFIG)
+                null
+            } catch (exception: AiCalculationException) {
+                exception
+            }
+
+        assertEquals(AiCalculationException.InvalidResponse, exception)
+    }
+
     private fun anthropicClientOf(engine: MockEngine): AnthropicClient =
         AnthropicClient(
             HttpClient(engine) {
@@ -89,5 +104,6 @@ class AnthropicClientTest {
         val CONFIG = AiProviderConfig(apiKey = "test-key", model = "test-model", baseUrl = null)
         const val SYSTEM_PROMPT = "system prompt"
         const val MESSAGES_RESPONSE = """{"content":[{"type":"text","text":"Oatmeal"}]}"""
+        const val MALFORMED_RESPONSE = "not json"
     }
 }

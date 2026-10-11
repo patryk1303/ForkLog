@@ -89,6 +89,38 @@ class OpenAiCompatibleClientTest {
     }
 
     @Test
+    fun `malformed body maps to InvalidResponse`() = runBlocking {
+        val client = openAiClientOf(MockEngine { respond(content = MALFORMED_RESPONSE) })
+
+        val exception =
+            try {
+                client.complete(SYSTEM_PROMPT, "a bowl of oatmeal", emptyList(), CONFIG)
+                null
+            } catch (exception: AiCalculationException) {
+                exception
+            }
+
+        assertNotNull(exception)
+        assertEquals(AiCalculationException.InvalidResponse::class, exception::class)
+    }
+
+    @Test
+    fun `empty body maps to InvalidResponse`() = runBlocking {
+        val client = openAiClientOf(MockEngine { respond(content = EMPTY_RESPONSE) })
+
+        val exception =
+            try {
+                client.complete(SYSTEM_PROMPT, "a bowl of oatmeal", emptyList(), CONFIG)
+                null
+            } catch (exception: AiCalculationException) {
+                exception
+            }
+
+        assertNotNull(exception)
+        assertEquals(AiCalculationException.InvalidResponse::class, exception::class)
+    }
+
+    @Test
     fun `thrown IOException maps to Network`() = runBlocking {
         val client = openAiClientOf(MockEngine { throw IOException("network down") })
 
@@ -140,5 +172,7 @@ class OpenAiCompatibleClientTest {
             )
         const val SYSTEM_PROMPT = "system prompt"
         const val ASSISTANT_RESPONSE = """{"choices":[{"message":{"content":"Oatmeal"}}]}"""
+        const val MALFORMED_RESPONSE = "not json"
+        const val EMPTY_RESPONSE = ""
     }
 }

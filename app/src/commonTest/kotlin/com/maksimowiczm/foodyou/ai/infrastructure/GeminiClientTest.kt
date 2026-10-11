@@ -72,6 +72,21 @@ class GeminiClientTest {
         assertEquals(AiCalculationException.Unauthorized, exception)
     }
 
+    @Test
+    fun `malformed body maps to InvalidResponse`() = runBlocking {
+        val client = geminiClientOf(MockEngine { respond(content = MALFORMED_RESPONSE) })
+
+        val exception =
+            try {
+                client.complete(SYSTEM_PROMPT, "a bowl of oatmeal", emptyList(), CONFIG)
+                null
+            } catch (exception: AiCalculationException) {
+                exception
+            }
+
+        assertEquals(AiCalculationException.InvalidResponse, exception)
+    }
+
     private fun geminiClientOf(engine: MockEngine): GeminiClient =
         GeminiClient(
             HttpClient(engine) {
@@ -87,5 +102,6 @@ class GeminiClientTest {
         const val SYSTEM_PROMPT = "system prompt"
         const val GENERATE_CONTENT_RESPONSE =
             """{"candidates":[{"content":{"parts":[{"text":"Oatmeal"}]}}]}"""
+        const val MALFORMED_RESPONSE = "not json"
     }
 }

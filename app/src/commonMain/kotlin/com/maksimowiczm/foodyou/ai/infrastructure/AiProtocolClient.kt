@@ -6,6 +6,7 @@ import com.maksimowiczm.foodyou.ai.domain.PreparedImage
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.CancellationException
+import kotlinx.serialization.SerializationException
 
 internal interface AiProtocolClient {
     suspend fun complete(
@@ -16,7 +17,10 @@ internal interface AiProtocolClient {
     ): String
 }
 
-/** Executes [block], mapping unexpected failures to [AiCalculationException.Network]. */
+/**
+ * Executes [block], mapping malformed response bodies to [AiCalculationException.InvalidResponse]
+ * and other unexpected failures to [AiCalculationException.Network].
+ */
 internal suspend fun executeAiRequest(block: suspend () -> String): String =
     try {
         block()
@@ -24,6 +28,8 @@ internal suspend fun executeAiRequest(block: suspend () -> String): String =
         throw exception
     } catch (exception: AiCalculationException) {
         throw exception
+    } catch (exception: SerializationException) {
+        throw AiCalculationException.InvalidResponse
     } catch (exception: Exception) {
         throw AiCalculationException.Network(exception)
     }
