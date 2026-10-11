@@ -311,6 +311,25 @@
     <string name="provider_openrouter">OpenRouter</string>
     <string name="provider_custom">Custom (OpenAI-compatible)</string>
 
+    <string name="headline_ai_calculation">AI calculation</string>
+    <string name="description_ai_calculation">Describe the dish or add photos and let AI estimate the nutrition.</string>
+    <string name="action_ai_calculate">Calculate</string>
+    <string name="action_choose_photos">Choose photos</string>
+    <string name="action_take_photo">Take photo</string>
+    <string name="action_add_photo">Add photo</string>
+    <string name="action_ai_open_settings">Open settings</string>
+    <string name="headline_ai_result">AI estimate</string>
+    <string name="action_apply">Apply</string>
+    <string name="description_ai">Description</string>
+    <string name="error_ai_max_photos">You can add up to 4 photos</string>
+    <string name="error_ai_camera_permission">Camera permission is required to take a photo</string>
+    <string name="error_ai_not_configured">Set up an AI provider in settings first</string>
+    <string name="error_ai_unauthorized">The AI provider rejected your API key</string>
+    <string name="error_ai_rate_limited">Rate limit reached. Try again in a moment.</string>
+    <string name="error_ai_server">The AI provider had a server error. Try again later.</string>
+    <string name="error_ai_network">Network error. Check your connection and try again.</string>
+    <string name="error_ai_invalid_response">Couldn't read the AI response. Try again.</string>
+
     <string name="feature_manual_database_import">Manual database import</string>
 
     <string name="action_unpack" description="Unpack the recipe ingredients">Unpack</string>

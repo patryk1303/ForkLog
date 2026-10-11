@@ -26,6 +26,11 @@ import androidx.navigationevent.compose.NavigationEventHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import com.maksimowiczm.foodyou.app.ui.common.component.ArrowBackIconButton
 import com.maksimowiczm.foodyou.app.ui.common.component.DiscardDialog
+import com.maksimowiczm.foodyou.app.ui.food.diary.quickadd.aicalc.QuickAddAiSection
+import com.maksimowiczm.foodyou.app.ui.food.diary.quickadd.aicalc.AiResultDialog
+import com.maksimowiczm.foodyou.app.ui.food.diary.quickadd.AiPhoto
+import com.maksimowiczm.foodyou.app.ui.food.diary.quickadd.QuickAddAiStateComposables
+import com.maksimowiczm.foodyou.common.compose.extension.add
 import com.maksimowiczm.foodyou.common.compose.extension.add
 import foodyou.app.generated.resources.*
 import kotlinx.coroutines.delay
@@ -37,6 +42,14 @@ internal fun QuickAddScreen(
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
     state: QuickAddFormState = rememberQuickAddFormState(),
+    aiState: QuickAddAiState = rememberQuickAddAiState(),
+    aiResult: com.maksimowiczm.foodyou.ai.domain.NutritionAiResult? = null,
+    onAiDescriptionChange: (String) -> Unit = {},
+    onAiAddPhotos: (List<String>) -> Unit = {},
+    onAiRemovePhoto: (AiPhoto) -> Unit = {},
+    onAiCalculate: () -> Unit = {},
+    onAiApply: (String) -> Unit = {},
+    onOpenAiSettings: () -> Unit = {},
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val focusRequester = remember { FocusRequester() }
@@ -68,6 +81,24 @@ internal fun QuickAddScreen(
             },
         ) {
             Text(stringResource(Res.string.question_discard_changes))
+        }
+    }
+
+    var showAiResultDialog by rememberSaveable { mutableStateOf(false) }
+    if (showAiResultDialog) {
+        val currentResult = aiResult ?: aiState.result
+        if (currentResult != null) {
+            com.maksimowiczm.foodyou.app.ui.food.diary.quickadd.aicalc.AiResultDialog(
+                name = currentResult.name,
+                result = currentResult,
+                onApply = { editedName ->
+                    onAiApply(editedName)
+                    showAiResultDialog = false
+                },
+                onDismiss = { showAiResultDialog = false },
+            )
+        } else {
+            showAiResultDialog = false
         }
     }
 
@@ -107,6 +138,16 @@ internal fun QuickAddScreen(
                 Text(
                     text = stringResource(Res.string.description_quick_add),
                     style = MaterialTheme.typography.bodyMedium,
+                )
+                Spacer(Modifier.height(16.dp))
+                QuickAddAiSection(
+                    state = aiState,
+                    isConfigured = aiState.canCalculate,
+                    onDescriptionChange = onAiDescriptionChange,
+                    onAddPhotos = onAiAddPhotos,
+                    onRemovePhoto = onAiRemovePhoto,
+                    onCalculate = onAiCalculate,
+                    onOpenAiSettings = onOpenAiSettings,
                 )
                 Spacer(Modifier.height(16.dp))
                 QuickAddForm(state = state, modifier = Modifier.focusRequester(focusRequester))

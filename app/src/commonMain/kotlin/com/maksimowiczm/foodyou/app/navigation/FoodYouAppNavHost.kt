@@ -178,6 +178,7 @@ fun FoodYouAppNavHost(onDatabaseBackup: () -> Unit, modifier: Modifier = Modifie
                 onSave = { navController.popBackStackInclusive<FoodDiaryCreateQuickAdd>() },
                 date = LocalDate.fromEpochDays(epochDay),
                 mealId = mealId,
+                onOpenAiSettings = { navController.navigateSingleTop(AiSettings) },
             )
         }
         forwardBackwardComposable<UpdateQuickAdd> {
@@ -187,6 +188,7 @@ fun FoodYouAppNavHost(onDatabaseBackup: () -> Unit, modifier: Modifier = Modifie
                 onBack = { navController.popBackStackInclusive<UpdateQuickAdd>() },
                 onSave = { navController.popBackStackInclusive<UpdateQuickAdd>() },
                 id = quickAddId,
+                onOpenAiSettings = { navController.navigateSingleTop(AiSettings) },
             )
         }
         forwardBackwardComposable<FoodDiarySearch> {
