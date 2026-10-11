@@ -1,0 +1,136 @@
+package com.maksimowiczm.foodyou.app.ui.food.diary.quickadd
+
+import androidx.compose.ui.graphics.ImageBitmap
+import com.maksimowiczm.foodyou.ai.ImagePreparation
+import com.maksimowiczm.foodyou.ai.decodeJpegToImageBitmap
+import com.maksimowiczm.foodyou.ai.domain.AiCalculationException
+import com.maksimowiczm.foodyou.ai.domain.MAX_AI_PHOTOS
+import com.maksimowiczm.foodyou.ai.domain.NutritionAiRequest
+import com.maksimowiczm.foodyou.ai.domain.NutritionAiResult
+import com.maksimowiczm.foodyou.ai.domain.NutritionCalculator
+import com.maksimowiczm.foodyou.ai.domain.PreparedImage
+import com.maksimowiczm.foodyou.common.domain.food.NutritionFacts
+import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+internal data class AiPhoto(val image: PreparedImage, val thumbnail: ImageBitmap?)
+
+internal data class QuickAddAiState(
+    val description: String = "",
+    val photos: List<AiPhoto> = emptyList(),
+    val status: Status = Status.Idle,
+    val result: NutritionAiResult? = null,
+    val appliedOverlay: NutritionFacts? = null,
+) {
+    sealed interface Status {
+        data object Idle : Status
+
+        data object Loading : Status
+
+        data class Error(val exception: AiCalculationException) : Status
+    }
+
+    val canCalculate: Boolean
+        get() = photos.isNotEmpty() || description.isNotBlank()
+}
+
+/**
+ * Drives the AI part of the quick-add screen: description and photo input, calculation status and
+ * the last applied nutrition overlay used to enrich saved entries.
+ */
+internal class QuickAddAiController(
+    private val calculator: NutritionCalculator,
+    private val imagePreparation: ImagePreparation,
+    private val scope: CoroutineScope,
+) {
+    private val _state = MutableStateFlow(QuickAddAiState())
+
+    val state: StateFlow<QuickAddAiState> = _state.asStateFlow()
+
+    /** Updates the description; a changed description invalidates a pending result. */
+    fun setDescription(description: String) {
+        _state.update { it.copy(description = description, result = null) }
+    }
+
+    /**
+     * Prepares up to [MAX_AI_PHOTOS] photos in total. The incoming list is truncated to the
+     * remaining capacity and processed sequentially off the main thread. Unreadable images are
+     * skipped and failures never propagate.
+     */
+    fun addPhotos(uris: List<String>) {
+        val remaining = MAX_AI_PHOTOS - _state.value.photos.size
+        if (remaining <= 0) return
+
+        val accepted = uris.take(remaining)
+        if (accepted.isEmpty()) return
+
+        scope.launch(Dispatchers.IO) {
+            for (uri in accepted) {
+                val photo =
+                    try {
+                        val image = imagePreparation.prepare(uri) ?: continue
+                        AiPhoto(image, decodeJpegToImageBitmap(image.jpeg))
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        continue
+                    }
+
+                _state.update { it.copy(photos = it.photos + photo) }
+            }
+        }
+    }
+
+    fun removePhoto(photo: AiPhoto) {
+        _state.update { it.copy(photos = it.photos - photo) }
+    }
+
+    fun clearPhotos() {
+        _state.update { it.copy(photos = emptyList()) }
+    }
+
+    /** Requests a nutrition calculation for the current description and photos. */
+    fun calculate() {
+        scope.launch {
+            _state.update { it.copy(status = QuickAddAiState.Status.Loading) }
+
+            val snapshot = _state.value
+            val request =
+                NutritionAiRequest(
+                    description = snapshot.description.trim().takeIf { it.isNotBlank() },
+                    images = snapshot.photos.map { it.image },
+                )
+
+            try {
+                val result = calculator.calculate(request)
+                _state.update { it.copy(result = result, status = QuickAddAiState.Status.Idle) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                _state.update {
+                    it.copy(
+                        status =
+                            QuickAddAiState.Status.Error(
+                                e as? AiCalculationException ?: AiCalculationException.Network(e)
+                            )
+                    )
+                }
+            }
+        }
+    }
+
+    /** Stores the displayed result as the overlay merged into the entry on save. */
+    fun applyResult() {
+        _state.update { it.copy(appliedOverlay = it.result?.nutritionFacts, result = null) }
+    }
+
+    fun dismissResult() {
+        _state.update { it.copy(result = null) }
+    }
+}

@@ -12,6 +12,8 @@ fun Module.foodDiaryQuickAdd() {
             date = date,
             manualDiaryEntryRepository = get(),
             dateProvider = get(),
+            nutritionCalculator = get(),
+            imagePreparation = get(),
         )
     }
     viewModelOf(::UpdateQuickAddViewModel)

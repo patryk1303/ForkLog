@@ -4,11 +4,13 @@ import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import com.maksimowiczm.foodyou.ai.domain.NutritionAiResult
 import com.maksimowiczm.foodyou.app.ui.common.form.FormField
 import com.maksimowiczm.foodyou.app.ui.common.form.nonBlankStringValidator
 import com.maksimowiczm.foodyou.app.ui.common.form.nullableDoubleParser
 import com.maksimowiczm.foodyou.app.ui.common.form.rememberFormField
 import com.maksimowiczm.foodyou.app.ui.common.form.stringParser
+import com.maksimowiczm.foodyou.app.ui.common.utility.EnergyFormatter
 import com.maksimowiczm.foodyou.app.ui.common.utility.LocalEnergyFormatter
 import com.maksimowiczm.foodyou.common.compose.utility.formatClipZeros
 import com.maksimowiczm.foodyou.common.domain.food.NutrientsHelper
@@ -202,5 +204,50 @@ internal class QuickAddFormState(
             carbohydrates.error == null &&
             fats.error == null &&
             energy.error == null
+    }
+
+    /**
+     * Writes [result] into the form: the name verbatim, every nutrient as formatted text (empty
+     * when the AI did not provide it) and the auto-calculate energy toggle adjusted to the AI
+     * energy.
+     */
+    fun applyAiResult(result: NutritionAiResult, energyFormatter: EnergyFormatter) {
+        name.textFieldState.setTextAndPlaceCursorAtEnd(result.name)
+
+        val facts = result.nutritionFacts
+        proteins.textFieldState.setTextAndPlaceCursorAtEnd(
+            facts.proteins.value?.formatClipZeros() ?: ""
+        )
+        carbohydrates.textFieldState.setTextAndPlaceCursorAtEnd(
+            facts.carbohydrates.value?.formatClipZeros() ?: ""
+        )
+        fats.textFieldState.setTextAndPlaceCursorAtEnd(facts.fats.value?.formatClipZeros() ?: "")
+
+        val aiKcal = facts.energy.value
+        if (aiKcal == null) {
+            energy.textFieldState.setTextAndPlaceCursorAtEnd("")
+            if (
+                facts.proteins.value != null ||
+                    facts.carbohydrates.value != null ||
+                    facts.fats.value != null
+            ) {
+                autoCalculateEnergy = true
+            }
+        } else {
+            energy.textFieldState.setTextAndPlaceCursorAtEnd(
+                energyFormatter.fromKcal(aiKcal).formatClipZeros()
+            )
+        }
+
+        if (
+            shouldDisableAutoCalculate(
+                aiKcal = aiKcal,
+                proteins = facts.proteins.value,
+                carbohydrates = facts.carbohydrates.value,
+                fats = facts.fats.value,
+            )
+        ) {
+            autoCalculateEnergy = false
+        }
     }
 }
