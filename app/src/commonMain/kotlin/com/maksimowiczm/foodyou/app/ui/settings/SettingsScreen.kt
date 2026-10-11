@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.maksimowiczm.foodyou.app.ui.common.component.ArrowBackIconButton
 import com.maksimowiczm.foodyou.app.ui.common.component.SettingsListItem
 import com.maksimowiczm.foodyou.app.ui.common.utility.LocalAppConfig
+import com.maksimowiczm.foodyou.app.ui.settings.ai.AiSettingsListItem
 import com.maksimowiczm.foodyou.common.compose.extension.add
 import foodyou.app.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -34,6 +35,7 @@ fun SettingsScreen(
     onPersonalization: () -> Unit,
     onDatabase: () -> Unit,
     onExternalDatabases: () -> Unit,
+    onAiSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -69,6 +71,15 @@ fun SettingsScreen(
             item {
                 ExternalDatabasesSettingsListItem(
                     onClick = onExternalDatabases,
+                    shape = shape,
+                    color = color,
+                    contentColor = contentColor,
+                )
+            }
+
+            item {
+                AiSettingsListItem(
+                    onClick = onAiSettings,
                     shape = shape,
                     color = color,
                     contentColor = contentColor,

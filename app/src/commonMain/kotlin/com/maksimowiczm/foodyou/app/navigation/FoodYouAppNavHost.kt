@@ -35,6 +35,7 @@ import com.maksimowiczm.foodyou.app.ui.meal.MealSettingsScreen
 import com.maksimowiczm.foodyou.app.ui.personalization.PersonalizationScreen
 import com.maksimowiczm.foodyou.app.ui.personalization.PersonalizeNutritionFactsScreen
 import com.maksimowiczm.foodyou.app.ui.settings.SettingsScreen
+import com.maksimowiczm.foodyou.app.ui.settings.ai.AiSettingsScreen
 import com.maksimowiczm.foodyou.app.ui.theme.ThemeScreen
 import com.maksimowiczm.foodyou.common.domain.measurement.Measurement
 import com.maksimowiczm.foodyou.common.domain.measurement.MeasurementType
@@ -94,6 +95,7 @@ fun FoodYouAppNavHost(onDatabaseBackup: () -> Unit, modifier: Modifier = Modifie
                 onPersonalization = { navController.navigateSingleTop(Personalization) },
                 onDatabase = { navController.navigateSingleTop(DatabaseSettings) },
                 onExternalDatabases = { navController.navigateSingleTop(ExternalDatabases) },
+                onAiSettings = { navController.navigateSingleTop(AiSettings) },
             )
         }
         forwardBackwardComposable<Language> {
@@ -134,6 +136,9 @@ fun FoodYouAppNavHost(onDatabaseBackup: () -> Unit, modifier: Modifier = Modifie
                     navController.navigateSingleTop(SwissFoodCompositionDatabase)
                 },
             )
+        }
+        forwardBackwardComposable<AiSettings> {
+            AiSettingsScreen(onBack = { navController.popBackStackInclusive<AiSettings>() })
         }
         forwardBackwardComposable<SwissFoodCompositionDatabase> {
             SwissFoodCompositionDatabaseScreen(
@@ -446,6 +451,8 @@ fun FoodYouAppNavHost(onDatabaseBackup: () -> Unit, modifier: Modifier = Modifie
 @Serializable private object DatabaseSettings
 
 @Serializable private object ExternalDatabases
+
+@Serializable private object AiSettings
 
 @Serializable private object SwissFoodCompositionDatabase
 
