@@ -1,7 +1,6 @@
 package com.maksimowiczm.foodyou.app.ui.food.diary.quickadd
 
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.maksimowiczm.foodyou.ai.domain.AiPreferences
@@ -9,7 +8,6 @@ import com.maksimowiczm.foodyou.app.ui.common.utility.LocalEnergyFormatter
 import com.maksimowiczm.foodyou.common.compose.extension.LaunchedCollectWithLifecycle
 import com.maksimowiczm.foodyou.common.domain.userpreferences.UserPreferencesRepository
 import com.maksimowiczm.foodyou.fooddiary.domain.entity.ManualDiaryEntryId
-import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -54,24 +52,10 @@ fun UpdateQuickAddScreen(
             fats = entry.nutritionFacts.fats.value,
         )
 
-    var showAiResultDialog by rememberSaveable { mutableStateOf(false) }
-    val aiState = viewModel.ai.state
-    val aiResult = aiState.value.result
+    val aiState by viewModel.ai.state.collectAsStateWithLifecycle()
+    val aiResult = aiState.result
 
-    if (showAiResultDialog && aiResult != null) {
-        com.maksimowiczm.foodyou.app.ui.food.diary.quickadd.aicalc.AiResultDialog(
-            name = aiResult.name,
-            result = aiResult,
-            onApply = { editedName ->
-                formState.applyAiResult(aiResult.copy(name = editedName), energyFormatter)
-                viewModel.ai.applyResult()
-                showAiResultDialog = false
-            },
-            onDismiss = { showAiResultDialog = false },
-        )
-    }
-
-QuickAddScreen(
+    QuickAddScreen(
         onBack = onBack,
         onSave = {
             val name = formState.name.value
@@ -90,14 +74,20 @@ QuickAddScreen(
         },
         modifier = modifier,
         state = formState,
-        aiState = viewModel.ai.state,
+        aiState = aiState,
         aiResult = aiResult,
+        isAiConfigured = isConfigured,
         onAiDescriptionChange = { viewModel.ai.setDescription(it) },
         onAiAddPhotos = { viewModel.ai.addPhotos(it) },
         onAiRemovePhoto = { viewModel.ai.removePhoto(it) },
         onAiCalculate = { viewModel.ai.calculate() },
-        onAiApply = { showAiResultDialog = true },
-        onOpenAiSettings = onOpenAiSettings,
+        onAiApply = { editedName ->
+            aiResult?.let { result ->
+                formState.applyAiResult(result.copy(name = editedName), energyFormatter)
+                viewModel.ai.applyResult()
+            }
+        },
+        onAiDismiss = { viewModel.ai.dismissResult() },
         onOpenAiSettings = onOpenAiSettings,
     )
 }

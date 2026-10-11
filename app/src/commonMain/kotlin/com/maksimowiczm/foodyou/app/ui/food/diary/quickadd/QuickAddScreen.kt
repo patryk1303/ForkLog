@@ -24,13 +24,11 @@ import androidx.compose.ui.unit.dp
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationEventHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
+import com.maksimowiczm.foodyou.ai.domain.NutritionAiResult
 import com.maksimowiczm.foodyou.app.ui.common.component.ArrowBackIconButton
 import com.maksimowiczm.foodyou.app.ui.common.component.DiscardDialog
-import com.maksimowiczm.foodyou.app.ui.food.diary.quickadd.aicalc.QuickAddAiSection
 import com.maksimowiczm.foodyou.app.ui.food.diary.quickadd.aicalc.AiResultDialog
-import com.maksimowiczm.foodyou.app.ui.food.diary.quickadd.AiPhoto
-import com.maksimowiczm.foodyou.app.ui.food.diary.quickadd.QuickAddAiStateComposables
-import com.maksimowiczm.foodyou.common.compose.extension.add
+import com.maksimowiczm.foodyou.app.ui.food.diary.quickadd.aicalc.QuickAddAiSection
 import com.maksimowiczm.foodyou.common.compose.extension.add
 import foodyou.app.generated.resources.*
 import kotlinx.coroutines.delay
@@ -43,12 +41,14 @@ internal fun QuickAddScreen(
     modifier: Modifier = Modifier,
     state: QuickAddFormState = rememberQuickAddFormState(),
     aiState: QuickAddAiState = rememberQuickAddAiState(),
-    aiResult: com.maksimowiczm.foodyou.ai.domain.NutritionAiResult? = null,
+    aiResult: NutritionAiResult? = null,
+    isAiConfigured: Boolean = false,
     onAiDescriptionChange: (String) -> Unit = {},
     onAiAddPhotos: (List<String>) -> Unit = {},
     onAiRemovePhoto: (AiPhoto) -> Unit = {},
     onAiCalculate: () -> Unit = {},
     onAiApply: (String) -> Unit = {},
+    onAiDismiss: () -> Unit = {},
     onOpenAiSettings: () -> Unit = {},
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -84,22 +84,14 @@ internal fun QuickAddScreen(
         }
     }
 
-    var showAiResultDialog by rememberSaveable { mutableStateOf(false) }
-    if (showAiResultDialog) {
-        val currentResult = aiResult ?: aiState.result
-        if (currentResult != null) {
-            com.maksimowiczm.foodyou.app.ui.food.diary.quickadd.aicalc.AiResultDialog(
-                name = currentResult.name,
-                result = currentResult,
-                onApply = { editedName ->
-                    onAiApply(editedName)
-                    showAiResultDialog = false
-                },
-                onDismiss = { showAiResultDialog = false },
-            )
-        } else {
-            showAiResultDialog = false
-        }
+    val currentResult = aiResult ?: aiState.result
+    if (currentResult != null) {
+        AiResultDialog(
+            name = currentResult.name,
+            result = currentResult,
+            onApply = onAiApply,
+            onDismiss = onAiDismiss,
+        )
     }
 
     Scaffold(
@@ -142,13 +134,15 @@ internal fun QuickAddScreen(
                 Spacer(Modifier.height(16.dp))
                 QuickAddAiSection(
                     state = aiState,
-                    isConfigured = aiState.canCalculate,
+                    isConfigured = isAiConfigured,
                     onDescriptionChange = onAiDescriptionChange,
                     onAddPhotos = onAiAddPhotos,
                     onRemovePhoto = onAiRemovePhoto,
                     onCalculate = onAiCalculate,
                     onOpenAiSettings = onOpenAiSettings,
                 )
+            }
+            item {
                 Spacer(Modifier.height(16.dp))
                 QuickAddForm(state = state, modifier = Modifier.focusRequester(focusRequester))
             }
