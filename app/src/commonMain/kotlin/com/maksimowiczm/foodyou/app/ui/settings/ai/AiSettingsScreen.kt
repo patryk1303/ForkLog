@@ -4,18 +4,28 @@ import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
@@ -43,11 +53,25 @@ import org.koin.compose.viewmodel.koinViewModel
 fun AiSettingsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val viewModel: AiSettingsViewModel = koinViewModel()
     val preferences by viewModel.preferences.collectAsStateWithLifecycle()
+    val models by viewModel.models.collectAsStateWithLifecycle()
+    val isFetchingModels by viewModel.isFetchingModels.collectAsStateWithLifecycle()
+    val fetchModelsError by viewModel.fetchModelsError.collectAsStateWithLifecycle()
+    val isTestingConnection by viewModel.isTestingConnection.collectAsStateWithLifecycle()
+    val testConnectionSuccess by viewModel.testConnectionSuccess.collectAsStateWithLifecycle()
+    val testConnectionError by viewModel.testConnectionError.collectAsStateWithLifecycle()
 
     AiSettingsScreen(
         onBack = onBack,
         preferences = preferences,
+        models = models,
+        isFetchingModels = isFetchingModels,
+        fetchModelsError = fetchModelsError,
+        isTestingConnection = isTestingConnection,
+        testConnectionSuccess = testConnectionSuccess,
+        testConnectionError = testConnectionError,
         onProviderSelect = viewModel::selectProvider,
+        onFetchModels = viewModel::fetchModels,
+        onTestConnection = viewModel::testConnection,
         onSave = viewModel::saveConfig,
         modifier = modifier,
     )
@@ -57,7 +81,15 @@ fun AiSettingsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
 private fun AiSettingsScreen(
     onBack: () -> Unit,
     preferences: AiPreferences?,
+    models: List<String>,
+    isFetchingModels: Boolean,
+    fetchModelsError: String?,
+    isTestingConnection: Boolean,
+    testConnectionSuccess: Boolean,
+    testConnectionError: String?,
     onProviderSelect: (AiProvider) -> Unit,
+    onFetchModels: (provider: AiProvider, apiKey: String, baseUrl: String?) -> Unit,
+    onTestConnection: (provider: AiProvider, apiKey: String, model: String, baseUrl: String?) -> Unit,
     onSave: (provider: AiProvider, apiKey: String?, model: String?, baseUrl: String?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -73,6 +105,19 @@ private fun AiSettingsScreen(
     val isBaseUrlValid = baseUrl.startsWith("http://") || baseUrl.startsWith("https://")
     val canSave =
         selectedProvider != null && (selectedProvider != AiProvider.Custom || isBaseUrlValid)
+
+    val canFetchModels =
+        selectedProvider != null &&
+            apiKey.isNotBlank() &&
+            (selectedProvider == AiProvider.OpenAi ||
+                selectedProvider == AiProvider.OpenRouter ||
+                (selectedProvider == AiProvider.Custom && isBaseUrlValid))
+
+    val canTestConnection =
+        selectedProvider != null &&
+            apiKey.isNotBlank() &&
+            model.isNotBlank() &&
+            (selectedProvider != AiProvider.Custom || isBaseUrlValid)
 
     Scaffold(
         modifier = modifier,
@@ -129,11 +174,38 @@ private fun AiSettingsScreen(
                 }
 
                 item {
+                    var modelMenuExpanded by remember { mutableStateOf(false) }
                     OutlinedTextField(
                         value = model,
                         onValueChange = { model = it },
                         placeholder = selectedProvider.defaultModel?.let { { Text(it) } },
                         singleLine = true,
+                        trailingIcon = {
+                            if (models.isNotEmpty()) {
+                                Box {
+                                    IconButton(onClick = { modelMenuExpanded = true }) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.ArrowDropDown,
+                                            contentDescription = null,
+                                        )
+                                    }
+                                    DropdownMenu(
+                                        expanded = modelMenuExpanded,
+                                        onDismissRequest = { modelMenuExpanded = false },
+                                    ) {
+                                        models.forEach { fetchedModel ->
+                                            DropdownMenuItem(
+                                                text = { Text(fetchedModel) },
+                                                onClick = {
+                                                    model = fetchedModel
+                                                    modelMenuExpanded = false
+                                                },
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -153,6 +225,80 @@ private fun AiSettingsScreen(
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
                         )
+                    }
+                }
+
+                if (canFetchModels || canTestConnection) {
+                    item {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End,
+                            ) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    if (canFetchModels) {
+                                        FilledTonalButton(
+                                            onClick = { onFetchModels(selectedProvider, apiKey, baseUrl) },
+                                            enabled = !isFetchingModels,
+                                        ) {
+                                            if (isFetchingModels) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(18.dp),
+                                                    strokeWidth = 2.dp,
+                                                )
+                                            } else {
+                                                Text(stringResource(Res.string.action_fetch_models))
+                                            }
+                                        }
+                                    }
+                                    if (canTestConnection) {
+                                        OutlinedButton(
+                                            onClick = {
+                                                onTestConnection(selectedProvider, apiKey, model, baseUrl)
+                                            },
+                                            enabled = !isTestingConnection,
+                                        ) {
+                                            if (isTestingConnection) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(18.dp),
+                                                    strokeWidth = 2.dp,
+                                                )
+                                            } else {
+                                                Text(stringResource(Res.string.action_test_connection))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if (fetchModelsError != null) {
+                                Text(
+                                    text = fetchModelsError,
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                            if (testConnectionSuccess) {
+                                Text(
+                                    text = stringResource(Res.string.message_test_connection_success),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                            if (testConnectionError != null) {
+                                Text(
+                                    text =
+                                        stringResource(
+                                            Res.string.error_test_connection_failed,
+                                            testConnectionError,
+                                        ),
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                        }
                     }
                 }
 

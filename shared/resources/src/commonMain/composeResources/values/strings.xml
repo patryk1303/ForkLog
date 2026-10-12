@@ -304,6 +304,10 @@
     <string name="headline_ai_provider">Provider</string>
     <string name="headline_base_url">Base URL</string>
     <string name="error_invalid_base_url">Enter a valid URL starting with http:// or https://</string>
+     <string name="action_fetch_models">Fetch models</string>
+    <string name="action_test_connection">Test connection</string>
+    <string name="message_test_connection_success">Connection successful!</string>
+    <string name="error_test_connection_failed">Connection failed: %1$s</string>
     <string name="description_ai_privacy">Photos and descriptions are sent directly to the selected provider. Your API key is stored on this device only.</string>
     <string name="provider_openai">OpenAI</string>
     <string name="provider_google_gemini">Google Gemini</string>
