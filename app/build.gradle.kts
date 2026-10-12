@@ -66,8 +66,7 @@ kotlin {
 
             implementation(libs.jetbrains.compose.navigation.compose)
 
-            implementation(libs.koin.compose)
-            implementation(libs.koin.compose.viewmodel)
+            implementation(libs.koin.core)
 
             implementation(libs.androidx.datastore.preferences.core)
 
@@ -93,6 +92,7 @@ kotlin {
             implementation(libs.compose.shimmer)
 
             implementation(libs.colorpicker.compose)
+            implementation("io.insert-koin:koin-core:${libs.versions.koin.get()}")
         }
 
         commonTest.dependencies {
@@ -106,8 +106,21 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.appcompat)
             implementation(libs.koin.android)
+            implementation(libs.koin.compose)
+            implementation(libs.koin.core)
+            implementation(libs.koin.compose.viewmodel)
+            implementation(libs.lifecycle.viewmodel.compose)
+            implementation(libs.jetbrains.compose.ui)
+            implementation(libs.jetbrains.compose.runtime)
+            implementation(libs.jetbrains.compose.foundation)
+            implementation(libs.jetbrains.compose.material3)
+            implementation(libs.jetbrains.compose.material.icons.extended)
+            implementation(libs.jetbrains.compose.components.resources)
+            implementation(libs.jetbrains.compose.navigationevent.compose)
+            implementation(libs.jetbrains.compose.navigation.compose)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.sqlite.android)
+            implementation(projects.shared.resources)
         }
 
         androidInstrumentedTest.dependencies {
@@ -117,6 +130,9 @@ kotlin {
             implementation(libs.androidx.testExt.junit)
             implementation(libs.androidx.espresso.core)
             implementation(libs.androidx.compose.ui.test.junit4)
+            implementation(libs.koin.android)
+            implementation(libs.koin.compose)
+            implementation(libs.koin.core)
         }
 
         iosMain.dependencies { implementation(libs.ktor.client.darwin) }

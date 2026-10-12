@@ -12,6 +12,7 @@ import com.maksimowiczm.foodyou.common.infrastructure.datastore.dataStoreModule
 import com.maksimowiczm.foodyou.common.infrastructure.inmemory.inMemoryModule
 import com.maksimowiczm.foodyou.common.infrastructure.koin.applicationCoroutineScope
 import com.maksimowiczm.foodyou.common.infrastructure.system.systemModule
+
 import com.maksimowiczm.foodyou.common.log.Logger
 import kotlinx.coroutines.CoroutineScope
 import org.koin.core.module.dsl.factoryOf
@@ -30,5 +31,5 @@ fun appModule(applicationCoroutineScope: CoroutineScope) = module {
     dataStoreModule()
     inMemoryModule()
     roomModule()
-    systemModule()
+    systemModule
 }

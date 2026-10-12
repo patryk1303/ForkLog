@@ -14,38 +14,38 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.koin.core.module.Module
+import org.koin.core.qualifier.Qualifier
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import org.koin.dsl.onClose
+
+private val aiHttpClientQualifier: Qualifier = named("ai:http-client")
+private val openAiClientQualifier: Qualifier = named("ai:openai-client")
+private val geminiClientQualifier: Qualifier = named("ai:gemini-client")
+private val anthropicClientQualifier: Qualifier = named("ai:anthropic-client")
 
 fun Module.aiModule() {
     imagePreparationDefinition()
 
     userPreferencesRepositoryOf(::DataStoreAiPreferencesRepository)
 
-    single(named(NutritionCalculatorImpl::class.qualifiedName!!)) {
+    single(aiHttpClientQualifier) {
             HttpClient {
                 install(HttpTimeout) { requestTimeoutMillis = 60_000 }
                 install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
             }
         }
         .onClose { it?.close() }
-    factory(named(OpenAiCompatibleClient::class.qualifiedName!!)) {
-        OpenAiCompatibleClient(get(named(NutritionCalculatorImpl::class.qualifiedName!!)))
-    }
-    factory(named(GeminiClient::class.qualifiedName!!)) {
-        GeminiClient(get(named(NutritionCalculatorImpl::class.qualifiedName!!)))
-    }
-    factory(named(AnthropicClient::class.qualifiedName!!)) {
-        AnthropicClient(get(named(NutritionCalculatorImpl::class.qualifiedName!!)))
-    }
+    factory<AiProtocolClient>(openAiClientQualifier) { OpenAiCompatibleClient(get(aiHttpClientQualifier)) }
+    factory<AiProtocolClient>(geminiClientQualifier) { GeminiClient(get(aiHttpClientQualifier)) }
+    factory<AiProtocolClient>(anthropicClientQualifier) { AnthropicClient(get(aiHttpClientQualifier)) }
     factory<NutritionCalculator> {
         NutritionCalculatorImpl(
             preferencesRepository = userPreferencesRepository<AiPreferences>(),
             systemDetails = get(),
-            openAiClient = get(named(OpenAiCompatibleClient::class.qualifiedName!!)),
-            geminiClient = get(named(GeminiClient::class.qualifiedName!!)),
-            anthropicClient = get(named(AnthropicClient::class.qualifiedName!!)),
+            openAiClient = get(openAiClientQualifier),
+            geminiClient = get(geminiClientQualifier),
+            anthropicClient = get(anthropicClientQualifier),
         )
     }
 }

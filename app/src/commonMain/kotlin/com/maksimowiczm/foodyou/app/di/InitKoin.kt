@@ -3,6 +3,7 @@ package com.maksimowiczm.foodyou.app.di
 import com.maksimowiczm.foodyou.ai.infrastructure.aiModule
 import com.maksimowiczm.foodyou.app.ui.uiModule
 import com.maksimowiczm.foodyou.changelog.changelogModule
+import com.maksimowiczm.foodyou.common.infrastructure.system.systemModule
 import com.maksimowiczm.foodyou.food.foodModule
 import com.maksimowiczm.foodyou.food.search.foodSearchModule
 import com.maksimowiczm.foodyou.fooddiary.foodDiaryModule
@@ -34,5 +35,6 @@ fun initKoin(applicationCoroutineScope: CoroutineScope, config: KoinAppDeclarati
             pollModule,
             settingsModule,
             themeModule,
+            systemModule
         )
     }
